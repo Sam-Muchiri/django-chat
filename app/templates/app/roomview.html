@@ -1,0 +1,154 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{room.room_name}}</title>
+    <!-- <link rel="stylesheet" href="{% static 'css/room.css' %}"> -->
+</head>
+<body>
+    <style>
+        body{
+            background: #172be4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .left{
+            position: relative;
+           
+        }
+        .box1{
+            border-radius: 5px;
+          width: 100px;
+          background-color: rgb(250, 20, 97);
+        }
+        .right{
+            position: relative;
+            
+        }
+        .box2{
+            border-radius: 5px;
+            position: absolute;
+            width: 100px;
+            right: 10px;
+            background-color: rgb(66, 250, 20);
+        }
+        
+        .container{
+            border-radius: 10px;
+            width: 400px;
+            height: 550px;
+            background: whitesmoke;
+            overflow-y: scroll;
+        }
+    </style>
+    <h2>{{room.room_name}}</h2>
+<a href="{% url 'home' %}">Home</a>
+<div class="container" id='cont'>
+    {% for message in messages %}
+    {% if message.sender == request.user %}
+        <div class="left">
+            <div id="msg-body" class="">
+                
+                    {{message.messages}}
+                    me
+                
+            </div>
+        </div>
+    {% else %}
+        <div class="right">
+            <div id="msg-body">
+                
+                    {{message.messages}}
+                   {{message.sender}}
+                
+            </div>
+        </div> 
+    {% endif %}
+    {% endfor %}
+
+    <form action="#" method="post" id="form">
+        {% csrf_token %}
+        <input type="text" id="msg" placeholder="enter message">
+        <button id="send-msg">send</button>
+    </form>
+
+</div>
+{% block scripts %}
+{{ room.slug|json_script:"room-name" }}
+{{request.user.username|json_script:"json-username"}}
+<script>
+    const roomName =JSON.parse( document.getElementById('room-name').textContent);
+    const user =JSON.parse( document.getElementById('json-username').textContent);
+    
+    console.log("{{user}}")
+    
+    
+    const chatSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/chat/'
+        + roomName
+        + '/'
+    );
+    chatSocket.onmessage=function(e){
+        
+        const data=JSON.parse(e.data)
+        let sender= data['username']
+        
+        let container=document.getElementsByClassName("container")
+       
+        
+            if(sender=="{{user}}"){
+                let box=document.getElementById('msg-body')  
+                box.innerHTML+=`
+                    <div class="left">
+                        <div id="msg-body" class="">
+                            
+                            ${data.message}
+                            me
+                           
+                        </div>
+                    </div>`
+                
+            }else{
+                let box=document.getElementById('msg-body')  
+                box.innerHTML+=`
+                    <div class="right">
+                        <div id="msg-body">
+                            
+                            ${data.message}
+                            ${sender}
+                            
+                        </div>
+                    </div> `
+                
+            }
+         
+    }
+    chatSocket.onclose=function(e){
+        console.log('onclose')
+    }
+    document.getElementById("send-msg").onclick=function(e){
+        e.preventDefault()
+        let messageDom=document.getElementById("msg");
+        const msg=messageDom.value;
+        
+        chatSocket.send(JSON.stringify(
+            {
+                'message':msg,
+                'username':user,
+                'roomname':roomName,
+            }
+        ))
+        messageDom.value='';
+        return false
+    }
+</script>
+{% endblock %}
+</body>
+</html>

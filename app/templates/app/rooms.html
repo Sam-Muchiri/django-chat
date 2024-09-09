@@ -1,0 +1,9 @@
+<h2>Rooms</h2>
+<a href="{% url 'home' %}">Home</a>
+{% for room in rooms %}
+    <p>
+        <a href="{% url 'roomview' room.room_name %}"> {{room.room_name}}</a>
+    </p>
+ {% endfor %}
+ {% block scripts %}
+ {% endblock %}
